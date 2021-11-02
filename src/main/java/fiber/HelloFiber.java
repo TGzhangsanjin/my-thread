@@ -17,8 +17,11 @@ public class HelloFiber {
     public static void main(String[] args) throws Exception{
 
         int size = 5_000_000;
+        // 5ms 左右
         noThread(size);
+        // 10s左右
         myThread(size);
+        // 23s左右
         userFiber(size);
     }
 
