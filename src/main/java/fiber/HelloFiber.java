@@ -16,6 +16,8 @@ public class HelloFiber {
 
     public static void main(String[] args) throws Exception{
 
+        // 有一个错误提示貌似是需要添加一个启动参数  -javaagent:E:\repository\co\paralleluniverse\quasar-core\0.7.4\quasar-core-0.7.4.jar
+
         int size = 5_000_000;
         // 5ms 左右
         noThread(size);
