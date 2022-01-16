@@ -9,6 +9,8 @@ package juc;
  *      使用 volatile 关键字，会让所有的线程都去堆内存中读值（那是不是效率就降低了？？？？）
  * 2. 使用 volatile 不能保证多个线程共同修改 running 变量时所带来的的不一致问题，也就是说 volatile 不能替代 synchronized
  *
+ * 3. volatile 引用类型（包括数组）只能保证引用本本身的可见性，不能保证内部字段的可见性，具体见 Test02
+ *
  * 文章链接： http://www.cnblogs.com/nexiyi/p/java_memory_model_and_thread.html
  * @Author 张三金
  * @Date 2022/1/16 0016 16:01
@@ -17,7 +19,9 @@ package juc;
  */
 public class Code05_volatile {
 
-
+    /**
+     * volatile： 保证线程间的可见性
+     */
     public static class Test01 {
         volatile boolean running = true;
 
@@ -42,4 +46,38 @@ public class Code05_volatile {
             t.running = false;
         }
     }
+
+    /**
+     * volatile 引用类型（包括数组）只能保证引用本本身的可见性，不能保证内部字段的可见性
+     * 这句话有一定的无解，，其实 volatileClass 这个对象中的 volatileClass.test02Running 是可见的，
+     * 即volatileClass这个对象以及他内部的所有引用对于其它线程来说都是可见的，
+     * 但是 test02Running 这个变量是不可见的，即Test02.test02Running 是可不见的
+     */
+    public static class Test02 {
+
+        static boolean test02Running = true;
+
+        volatile static Test02 volatileClass = new Test02();
+
+        void m() {
+            System.out.println("m start");
+            // test02Running 是不可见的， volatileClass.test02Running 是可见的
+            while (test02Running) {
+
+            }
+            System.out.println("m end");
+        }
+
+        public static void main(String[] args) {
+            new Thread(volatileClass::m, "Thread 1").start();
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            test02Running = false;
+        }
+    }
+
 }
