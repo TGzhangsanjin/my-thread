@@ -1,5 +1,7 @@
 package juc;
 
+import java.util.Random;
+
 /**
  * 1.  synchronized 加锁的几种方式
  *      a) 锁住方法
@@ -16,6 +18,9 @@ package juc;
  * 3. 锁的优化
  *      a) 锁的细化，对于单个锁来说，锁住的代码越少效率越高
  *      b) 锁的粗化，如果有很多段代码分别都加了锁，那不如考虑将这些代码合并成一个锁
+ *
+ * 4. 某对象o作为一把锁，如果对象o的属性发生改变，不影响锁的使用，但是若果 o 变成另外一个对象，则会影响，则锁的对象会发生改变
+ *    应该避免将锁的对象引用变成另外的对象
  *
  *    ps: 对于加锁的代码
  *         如果执行时间段、线程数少，则采用自旋
@@ -213,6 +218,52 @@ public class Code03_synchronized implements Runnable{
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * 某对象o作为一把锁，如果对象o的属性发生改变，不影响锁的使用，但是若果 o 变成另外一个对象，则会影响，则锁的对象会发生改变
+     * 应该避免将锁的对象引用变成另外的对象
+     */
+    public static class Test05 {
+
+        int count;
+
+        static Code03_synchronized myLock = new Code03_synchronized();
+
+        void m () {
+            synchronized (myLock) {
+                for (int i = 0; i < 1000; i++) {
+                    count++;
+                }
+            }
+        }
+
+        public static void main(String[] args) {
+            Test05 t = new Test05();
+            Thread[] threads = new Thread[10000];
+            for (int i = 0; i < threads.length; i++) {
+                threads[i] = new Thread(t::m, "thread-" + i);
+            }
+            for (int i = 0; i < threads.length; i++) {
+//                    myLock.count = (int)(Math.random() * 100);
+                // 锁对象引用了一个新的对象，
+                // 在修改引用前，A线程拿到了锁，进入了代码块运行
+                // 在修改引用后，如果A线程还未执行完，B这个是后是可以拿到这把新锁的，这个时候A、B就会同时执行这段代码块了
+                myLock = new Code03_synchronized();
+                threads[i].start();
+            }
+            for (int i = 0; i < threads.length; i++) {
+                try {
+                    threads[i].join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            System.out.println(t.count);
+
+        }
+
     }
 
 }
