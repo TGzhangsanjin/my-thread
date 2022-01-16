@@ -132,4 +132,38 @@ public class Code03_synchronized implements Runnable{
         }
     }
 
+    /**
+     * 对于加锁的代码如果抛出异常了，默认情况下锁是会被释放的
+     */
+    public static class Test03 {
+        int index = 0;
+        public synchronized void m1 () {
+            System.out.println(Thread.currentThread().getName() + " start");
+            while (true) {
+                index ++;
+                System.out.println(Thread.currentThread().getName() + " index = " + index);
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                if (index % 10 == 0) {
+                    // 当前线程如果抛出异常了，默认情况下就会释放当前占用的这把锁
+                    System.out.println(1/0);
+                }
+            }
+        }
+
+        public static void main(String[] args) {
+            Test03 t = new Test03();
+            new Thread(t::m1, "thread-01").start();
+            try {
+                Thread.sleep(3);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            new Thread(t::m1, "thread-02").start();
+        }
+    }
+
 }
