@@ -3,7 +3,7 @@ package juc;
 /**
  * 创建线程的三种方式  启动线程都需要使用 Thread 类的 start() 方法
  * 1. 继承 Thread 类
- * 2. 实现 Runnable  接口 （最终启动线程时哈）
+ * 2. 实现 Runnable  接口 （最终启动线程时，任就需要 new Thread()）
  * 3. 使用 lambda 或者 线程池的方式
  *
  */
