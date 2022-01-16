@@ -50,6 +50,7 @@ public class Code05_volatile {
     /**
      * volatile 引用类型（包括数组）只能保证引用本本身的可见性，不能保证内部字段的可见性
      * 这句话有一定的无解，，其实 volatileClass 这个对象中的 volatileClass.test02Running 是可见的，
+     * 即可见的是一个volatileClass 这个对象
      * 即volatileClass这个对象以及他内部的所有引用对于其它线程来说都是可见的，
      * 但是 test02Running 这个变量是不可见的，即Test02.test02Running 是可不见的
      */
@@ -79,5 +80,40 @@ public class Code05_volatile {
             test02Running = false;
         }
     }
+
+    /**
+     * volatile 保证不了线程安全，要保证线程安全，还是需要依赖加锁
+     */
+    public static class Test03 {
+
+        volatile int count;
+
+        // 不加锁，保证不了线程安全
+        synchronized void addOne () {
+            this.count++;
+        }
+
+        public static void main(String[] args) {
+            Test03 t = new Test03();
+            Thread[] threads = new Thread[100000];
+            for (int i = 0; i < threads.length; i++) {
+                threads[i] = new Thread(t::addOne, "thread-" + i);
+            }
+            for (int i = 0; i < threads.length; i++) {
+                threads[i].start();
+            }
+
+            // 这个循环的目的是保证所以子线程都执行完了，再去执行下面的 System.out.println("count = " + t.count);
+            for (int i = 0; i < threads.length; i++) {
+                try {
+                    threads[i].join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            System.out.println("count = " + t.count);
+        }
+    }
+
 
 }
