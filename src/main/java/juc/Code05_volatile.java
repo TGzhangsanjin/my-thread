@@ -89,13 +89,15 @@ public class Code05_volatile {
         volatile int count;
 
         // 不加锁，保证不了线程安全
-        synchronized void addOne () {
-            this.count++;
+         synchronized void addOne () {
+            for (int i = 0; i < 1000; i++) {
+                this.count++;
+            }
         }
 
         public static void main(String[] args) {
             Test03 t = new Test03();
-            Thread[] threads = new Thread[100000];
+            Thread[] threads = new Thread[100];
             for (int i = 0; i < threads.length; i++) {
                 threads[i] = new Thread(t::addOne, "thread-" + i);
             }
