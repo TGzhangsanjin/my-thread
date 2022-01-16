@@ -169,4 +169,50 @@ public class Code03_synchronized implements Runnable{
         }
     }
 
+    /**
+     * 锁的优化，细化
+     * 方法m2 是要比 方法 m1 的效率更高的，可以使线程争用的时间更短
+     */
+    public static class Test04 {
+        int count;
+
+        public synchronized void m1 () {
+
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            count++;
+
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        public void m2 () {
+
+            // 这里类似于不需要加锁的业务代码
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            // 需要加锁的代码
+            synchronized (this) {
+                count++;
+            }
+            // 这里类似于不需要加锁的业务代码
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 }
