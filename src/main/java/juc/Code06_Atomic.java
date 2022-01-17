@@ -8,7 +8,9 @@ import java.util.concurrent.atomic.LongAdder;
  *      a) 线程安全的，方法本身都是原子性的
  *      b) longAdder 使用了分段锁
  *
- * 2.
+ * 2. ABA 问题
+ *      A线程将 count从1改为0， 然后又将 count 从0改为1，之后B线程再去获取count的值时，发现没有变化，以为没有其它线程处理过，
+ *      解决： 给count 加一个版本号就可以解决此问题
  *
  * @Author 张三金
  * @Date 2022/1/16 0016 18:01
