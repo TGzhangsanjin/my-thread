@@ -7,8 +7,13 @@ import java.util.concurrent.locks.ReentrantLock;
 /** ReentrantLock 可重入锁 （synchronized 也是可重入的）
  *
  * 1. 必须手动的释放锁 lock.unlock(), 所以一般 unlock() 都需要写在 finally 里面， 而 synchronized 如果抛出异常会自动释放锁
- * 2. tryLock()
- *      可以尝试进行获取锁，如果在指定时间内获取不到锁，可以根据具体业务的情况来处理后续（不阻塞,自然就可能导致线程不安全）
+ *
+ * 2. 几种显示获取锁的方法
+ *   a) tryLock()
+ *       可以尝试进行获取锁，如果在指定时间内获取不到锁，可以根据具体业务的情况来处理后续（不阻塞,自然就可能导致线程不安全）
+ *   b) lockInterruptibly()
+ *       拿到了锁，则直接走，拿不到锁，则一直等着，当被人interrupt了，则抛出异常
+ *
  * @Author 张三金
  * @Date 2022/1/17 0017 21:00
  * @Company jzb
@@ -101,6 +106,52 @@ public class Code07_ReentrantLock {
                 e.printStackTrace();
             }
             new Thread(t::m1).start();
+        }
+    }
+
+    public static class Test03 {
+        static Lock lock = new ReentrantLock();
+        public static void main(String[] args) {
+            Thread t1 = new Thread(() -> {
+                try{
+                    lock.lock();
+                    System.out.println("t1");
+                    Thread.sleep(Integer.MAX_VALUE);
+                    System.out.println("t1 end");
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    lock.unlock();
+                }
+            });
+            t1.start();
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            Thread t2 = new Thread(() -> {
+                try{
+                    // 一直等着获取锁，拿到了，正常往下走
+                    // 如果在等锁的过程中，被其它线程打断了，则抛出异常
+                    lock.lockInterruptibly();
+                    System.out.println("t2");
+                } catch (InterruptedException e) {
+                    System.out.println("t2 interupted!");
+                } finally {
+//                    lock.unlock();
+                }
+            });
+            t2.start();
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            t2.interrupt();
         }
     }
 
