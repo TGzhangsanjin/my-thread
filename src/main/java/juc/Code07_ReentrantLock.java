@@ -8,7 +8,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * 1. 必须手动的释放锁 lock.unlock(), 所以一般 unlock() 都需要写在 finally 里面， 而 synchronized 如果抛出异常会自动释放锁
  * 2. tryLock()
- *      可以尝试进行获取锁，如果在指定时间内获取不到锁，可以根据具体业务的情况来处理后续（不阻塞）
+ *      可以尝试进行获取锁，如果在指定时间内获取不到锁，可以根据具体业务的情况来处理后续（不阻塞,自然就可能导致线程不安全）
  * @Author 张三金
  * @Date 2022/1/17 0017 21:00
  * @Company jzb
@@ -60,30 +60,35 @@ public class Code07_ReentrantLock {
 
         Lock lock = new ReentrantLock();
 
+        /**
+         * 这里一开始一直不明白，为什么 m1没拿到所也能往下执行，是自己思路错了
+         */
         void m1 () {
             boolean locked = false;
             try {
+                // 如果1s内拿不到锁，会接着往下执行，这样就可能会导致这段代码时线程不安全的
                 locked = lock.tryLock(1, TimeUnit.SECONDS);
-                System.out.println("m1 locked " + lock);
+                System.out.println("m1 locked " + locked);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } finally {
                 if (locked) {
-//                    lock.unlock();
+                    lock.unlock();
                 }
             }
         }
 
         void m2 () {
+            boolean locked = false;
             try {
-                lock.tryLock();
-                System.out.println("m2 locked " + lock);
-                Thread.sleep(5000);
+                locked = lock.tryLock();
+                System.out.println("m2 " + locked);
+                Thread.sleep(4000);
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
-//                lock.unlock();
-                System.out.println("m2 unlocked");
+                lock.unlock();
+                System.out.println("m2 释放锁");
             }
         }
 
