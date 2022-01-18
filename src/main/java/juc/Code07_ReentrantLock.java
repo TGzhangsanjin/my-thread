@@ -13,7 +13,8 @@ import java.util.concurrent.locks.ReentrantLock;
  *       可以尝试进行获取锁，如果在指定时间内获取不到锁，可以根据具体业务的情况来处理后续（不阻塞,自然就可能导致线程不安全）
  *   b) lockInterruptibly()
  *       拿到了锁，则直接走，拿不到锁，则一直等着，当被人interrupt了，则抛出异常
- *
+ * 3. 支持公平锁和非公平锁
+ *      非公平锁，当前线程执行完之后会直接去CAS，而公平锁当前线程执行完之后则是放到队列中，和其它线程公平竞争
  * @Author 张三金
  * @Date 2022/1/17 0017 21:00
  * @Company jzb
@@ -109,6 +110,9 @@ public class Code07_ReentrantLock {
         }
     }
 
+    /**
+     * lockInterruptibly() 方法
+     */
     public static class Test03 {
         static Lock lock = new ReentrantLock();
         public static void main(String[] args) {
@@ -152,6 +156,61 @@ public class Code07_ReentrantLock {
                 e.printStackTrace();
             }
             t2.interrupt();
+        }
+    }
+
+    /**
+     * 公平锁和非公平锁
+     */
+    public static class Test04 {
+        // 公平锁，分布的更均匀一些，我这个实验没有看出啥区别
+//        Lock lock = new ReentrantLock(true);
+        Lock lock = new ReentrantLock();
+
+        void m1 () {
+            try {
+                lock.lock();
+                System.out.println("m1");
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        void m2 () {
+            try {
+                lock.lock();
+                System.out.println("m2");
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        public static void main(String[] args) {
+            Test04 t = new Test04();
+            Thread[] threads = new Thread[100];
+            for (int i = 0; i < threads.length; i++) {
+                if (i % 2 == 0) {
+                    threads[i] = new Thread(t::m1);
+                } else {
+                    threads[i] = new Thread(t::m2);
+                }
+            }
+            for (int i = 0; i < threads.length; i++) {
+                threads[i].start();
+            }
+
+            for (int i = 0; i < threads.length; i++) {
+                try {
+                    threads[i].join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
         }
     }
 
