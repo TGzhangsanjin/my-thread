@@ -67,25 +67,10 @@ public class Code15_Question {
 
         public static class MyContainer02 {
 
+
             List<Object> list = new ArrayList<>();
-            public synchronized void add() {
-                for (int i = 0; i < 10; i++) {
-                    if (i == 5) {
-                        try {
-                            // 线程阻塞，并且释放锁
-                            this.wait();
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    list.add(new Object());
-                    System.out.println("count add one, current count = " + list.size());
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
+            public void add() {
+                list.add(new Object());
             }
 
             public int size() {
@@ -95,23 +80,58 @@ public class Code15_Question {
         public static void main(String[] args) {
             MyContainer02 container = new MyContainer02();
             Thread t1 = new Thread(() -> {
-                container.add();
+                synchronized (container) {
+                    for (int i = 0; i < 10; i++) {
+                        if (i == 5) {
+                            try {
+                                // 去唤醒 t2 线程（如果t2线程阻塞的话）
+                                container.notify();
+                                // 线程阻塞，并且释放锁
+                                container.wait();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        container.add();
+                        System.out.println("count add one, i = " + i);
+                        try {
+                            Thread.sleep(100);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+
+
             });
             Thread t2 = new Thread( () -> {
-                while (true) {
-                    synchronized (container) {
+                synchronized (container) {
+                    while (true) {
                         if (container.size() == 5) {
                             System.out.println("Thread-2 end");
                             // 唤醒之前阻塞了的线程
                             container.notify();
                             break;
+                        } else {
+                            try {
+                                // 如果t2线程先拿到锁的话，t2线程要先阻塞， 释放锁
+                                container.wait();
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
                         }
-                    }
 
+                    }
                 }
+
             });
-            t1.start();
             t2.start();
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            t1.start();
         }
     }
 }
