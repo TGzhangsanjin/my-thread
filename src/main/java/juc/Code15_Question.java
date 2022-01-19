@@ -2,7 +2,8 @@ package juc;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Exchanger;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * 题目：
@@ -14,6 +15,19 @@ import java.util.concurrent.Exchanger;
  * @Version 1.0.0
  */
 public class Code15_Question {
+
+    public static class MyContainer {
+
+
+        List<Object> list = new ArrayList<>();
+        public void add() {
+            list.add(new Object());
+        }
+
+        public int size() {
+            return list.size();
+        }
+    }
 
     /**
      * 方式1（不行）：使用 volatile 修饰变量，线程之间可以共享，但是会不及时
@@ -64,21 +78,8 @@ public class Code15_Question {
      *      线程2当判断出有5个元素时，结束线程2的业务，并且唤醒线程1
      */
     public static class Test02 {
-
-        public static class MyContainer02 {
-
-
-            List<Object> list = new ArrayList<>();
-            public void add() {
-                list.add(new Object());
-            }
-
-            public int size() {
-                return list.size();
-            }
-        }
         public static void main(String[] args) {
-            MyContainer02 container = new MyContainer02();
+            MyContainer container = new MyContainer();
             Thread t1 = new Thread(() -> {
                 synchronized (container) {
                     for (int i = 0; i < 10; i++) {
@@ -132,6 +133,119 @@ public class Code15_Question {
                 e.printStackTrace();
             }
             t1.start();
+        }
+    }
+
+    /**
+     * 使用 CountDonwLatch 的 await() 和 countDown() 方法，代替 wait() 和 notify() 方法
+     * wait() 和 notify() 方法是需要加锁的
+     * 这里只是要完成线程之间的通信，直接加锁的话未免就太重了，所以 CountDownLatch 是一种不错的选择
+     */
+    public static class Test03 {
+
+        public static void main(String[] args) {
+            MyContainer container = new MyContainer();
+            CountDownLatch latch = new CountDownLatch(1);
+            Thread t1 = new Thread(() -> {
+                for (int i = 0; i < 10; i++) {
+                    if (i == 5) {
+                        // 数量到5了，通知 t2 线程可以继续了
+                        latch.countDown();
+                    }
+                    container.add();
+                    System.out.println("count add one, i = " + i);
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+
+            Thread t2 = new Thread( () -> {
+                if (container.size() != 5) {
+                    try {
+                        // 数量没到5就等在这里
+                        latch.await();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                System.out.println("Thread-2 end");
+            });
+            t1.start();
+            t2.start();
+        }
+    }
+
+    /**
+     * 使用 LockSupport
+     */
+    public static class Test04 {
+        public static void main(String[] args) {
+            MyContainer container = new MyContainer();
+
+            Thread t2 = new Thread(() -> {
+                if (container.size() != 5) {
+                    LockSupport.park();
+                }
+                System.out.println("t2 end");
+            });
+
+            Thread t1 = new Thread(() -> {
+                for (int i = 0; i < 10; i++) {
+                    if (i == 5) {
+                        LockSupport.unpark(t2);
+                        try {
+                            // 这个 sleep 很关键，唤醒 t2 后，，让才能让 t2 比 t1 早1s执行
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    System.out.println("count add, i = " + i);
+                    container.add();
+                }
+            });
+
+            t1.start();
+            t2.start();
+        }
+    }
+
+    /**
+     * 使用 LockSupport 不需要使用 sleep() , 因为 unpark() 和 park() 两个方法的顺序是无关的，
+     * 保证 i < 5 时，t1 线程执行，i == 5 时t2 执行完毕之后， t1 线程再接着执行
+     */
+    public static class Test05 {
+
+        static Thread t1 = null;
+        static Thread t2 = null;
+
+        public static void main(String[] args) {
+            MyContainer container = new MyContainer();
+
+            t1 = new Thread(() -> {
+                for (int i = 0; i < 10; i++) {
+                    if (i == 5) {
+                        LockSupport.unpark(t2);
+                        LockSupport.park();
+                    }
+                    System.out.println("count add, i = " + i);
+                    container.add();
+                }
+            });
+
+            t2 = new Thread(() -> {
+                if (container.size() != 5) {
+                    LockSupport.park();
+                }
+                System.out.println("t2 end");
+                LockSupport.unpark(t1);
+            });
+
+            t1.start();
+            t2.start();
         }
     }
 }
