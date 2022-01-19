@@ -3,6 +3,7 @@ package juc;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -246,6 +247,56 @@ public class Code15_Question {
 
             t1.start();
             t2.start();
+        }
+    }
+
+    /**
+     * Semaphore
+     */
+    public static class Test06 {
+        static Thread t1 = null;
+        static Thread t2 = null;
+        public static void main(String[] args) {
+            Semaphore s= new Semaphore(1);
+            MyContainer container = new MyContainer();
+            t1 = new Thread(() -> {
+                System.out.println("t1 start");
+                try {
+                    s.acquire();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                for (int i = 0; i < 10; i++) {
+                    if (i == 5) {
+                       s.release();
+                        try {
+                            // 让 t2 先执行完, 并且在这里才能开启 start(), 在主线程里面，不能让 t2线程先运行
+                            t2.start();
+                            t2.join();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    System.out.println("count add, i = " + i);
+                    container.add();
+                }
+                System.out.println("t1 end");
+            });
+
+
+            t2 = new Thread(() -> {
+                System.out.println("t2 start");
+                try {
+                    s.acquire();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    s.release();
+                }
+                System.out.println("t2 end");
+            });
+            t1.start();
+
         }
     }
 }
