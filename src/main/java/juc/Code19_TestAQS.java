@@ -13,9 +13,10 @@ public class Code19_TestAQS {
     public static volatile int i = 0;
 
     public static void main(String[] args) {
-        ReentrantLock lock = new ReentrantLock();
+        ReentrantLock lock = new ReentrantLock(true);
         // 手动加锁
         lock.lock();
+//        lock.lock(false);
         try{
             System.out.println("My Business!!!!");
         } catch (Exception e) {
